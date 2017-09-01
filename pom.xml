@@ -5,4 +5,23 @@
   <version>0.0.1-SNAPSHOT</version>
   <name>GraphQL to Model</name>
   <description>Converts GraphQL schema to UML domain model</description>
+  <dependencies>
+  	<dependency>
+  		<groupId>org.antlr</groupId>
+  		<artifactId>antlr4-runtime</artifactId>
+  		<version>4.7</version>
+  		<scope>runtime</scope>
+  	</dependency>
+  	<dependency>
+  		<groupId>org.antlr</groupId>
+  		<artifactId>antlr4</artifactId>
+  		<version>4.7</version>
+  	</dependency>
+  	<dependency>
+  		<groupId>org.antlr</groupId>
+  		<artifactId>stringtemplate</artifactId>
+  		<version>4.0.2</version>
+  		<scope>runtime</scope>
+  	</dependency>
+  </dependencies>
 </project>
