@@ -1,0 +1,19 @@
+plantumlFile(className, statements) ::= <<
+
+>>
+
+enterObjectTypeDefinition(name, implements) ::= <<
+class <name> {
+
+>>
+
+exitObjectTypeDefinition() ::= <<
+}
+
+>>
+
+enterFieldDefinition(name, type) ::= <<
+	+{field} <name>: <type>
+
+>>
+
