@@ -14,7 +14,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
-package net.helipilot50.generator;
+package net.helipilot50.graphql.export;
 
 import java.io.File;
 import java.io.IOException;

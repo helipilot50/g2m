@@ -1,4 +1,4 @@
-package net.helipilot50.generator;
+package net.helipilot50.graphql.export;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -25,29 +25,14 @@ public class Export {
 			options.addOption("i", "input", true, "input file name ");
 			options.addOption("l", "language", true, "Target language, supported languages: PLANTUML (future: XMI)");
 			options.addOption("o", "output", true, "Output file name. ");
-			options.addOption("u", "help", false, "Print usage.");
+			options.addOption("h", "help", false, "Print usage.");
 
 			CommandLineParser parser = new PosixParser();
 			CommandLine cl = parser.parse(options, args, false);
 
-			if (cl.hasOption("u")) {
+			if (cl.hasOption("h")) {
 				logUsage(options);
 				return;
-			}
-
-			String host = cl.getOptionValue("h", "127.0.0.1");
-			String portString = cl.getOptionValue("p", "3000");
-			int port = Integer.parseInt(portString);
-			String namespace = cl.getOptionValue("n","test");
-			String set = cl.getOptionValue("s", "test");
-			
-			
-			String format = cl.getOptionValue("o", "TABLE");
-			
-
-			
-			if (set.equals("empty")) {
-				set = "";
 			}
 
 

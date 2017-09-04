@@ -1,7 +1,7 @@
 grammar GraphQL;
 
 @header {
-    package graphql.parser.antlr;
+    package net.helipilot50.graphql.export.grammar;
 }
 
 // Document 

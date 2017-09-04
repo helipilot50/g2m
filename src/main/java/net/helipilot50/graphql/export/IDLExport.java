@@ -1,4 +1,4 @@
-package net.helipilot50.generator;
+package net.helipilot50.graphql.export;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -14,11 +14,15 @@ import org.stringtemplate.v4.ST;
 import org.stringtemplate.v4.STGroup;
 import org.stringtemplate.v4.STGroupFile;
 
-import graphql.parser.antlr.GraphQLBaseListener;
-import graphql.parser.antlr.GraphQLLexer;
-import graphql.parser.antlr.GraphQLParser;
-import graphql.parser.antlr.GraphQLParser.FieldDefinitionContext;
-import graphql.parser.antlr.GraphQLParser.ObjectTypeDefinitionContext;
+import net.helipilot50.graphql.export.grammar.GraphQLBaseListener;
+import net.helipilot50.graphql.export.grammar.GraphQLLexer;
+import net.helipilot50.graphql.export.grammar.GraphQLParser;
+import net.helipilot50.graphql.export.grammar.GraphQLParser.DefinitionContext;
+import net.helipilot50.graphql.export.grammar.GraphQLParser.DocumentContext;
+import net.helipilot50.graphql.export.grammar.GraphQLParser.FieldDefinitionContext;
+import net.helipilot50.graphql.export.grammar.GraphQLParser.ListTypeContext;
+import net.helipilot50.graphql.export.grammar.GraphQLParser.ObjectTypeDefinitionContext;
+import net.helipilot50.graphql.export.grammar.GraphQLParser.TypeNameContext;
 
 
 
@@ -65,6 +69,17 @@ public class IDLExport extends GraphQLBaseListener{
 		log.debug("Rendered: " + st.render());
 		code.put(ctx, st);
 	}
+	
+	@Override
+	public void exitDocument(DocumentContext ctx) {
+		ST st = getTemplateFor("plantumlFile");
+		for (DefinitionContext def : ctx.definition()){
+			
+		}
+		st.add("types", code.get(ctx.definition()));
+		putCode(ctx, st);
+	}
+	exitd
 
 	@Override
 	public void enterObjectTypeDefinition(ObjectTypeDefinitionContext ctx) {
@@ -83,8 +98,21 @@ public class IDLExport extends GraphQLBaseListener{
 	public void enterFieldDefinition(FieldDefinitionContext ctx) {
 		ST st = getTemplateFor("enterFieldDefinition");
 		st.add("name", ctx.name().getText());
+		st.add("type", ctx.type().getText());
 		putCode(ctx, st);
 		
+	}
+	@Override
+	public void enterTypeName(TypeNameContext ctx) {
+		ST st = getTemplateFor("enterTypeName");
+		st.add("name", ctx.name().getText());
+		putCode(ctx, st);
+	}
+	@Override
+	public void enterListType(ListTypeContext ctx) {
+		ST st = getTemplateFor("enterListType");
+		st.add("type", ctx.type().getText());
+		putCode(ctx, st);
 	}
 	
 

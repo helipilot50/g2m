@@ -11,9 +11,16 @@ exitObjectTypeDefinition() ::= <<
 }
 
 >>
+enterTypeName(name) ::= <<
+<name>
+>>
 
 enterFieldDefinition(name, type) ::= <<
-	+{field} <name>: <type>
+	+{field} <name>: 
+>>
+
+enterListType(type) ::= <<
+	 <type>
 
 >>
 
