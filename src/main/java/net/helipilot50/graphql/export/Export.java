@@ -63,7 +63,7 @@ public class Export {
 				log.debug("Output: " + outputFileName);
 				log.debug("Language: " + languageString);
 				IDLExport exporter = new IDLExport();
-				exporter.generate(inputFile, outputFile);
+				exporter.generate(inputFileName, outputFile);
 				log.info("Completed export of " + inputFileName);
 
 		} catch (Exception e) {

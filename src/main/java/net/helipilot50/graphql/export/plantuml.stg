@@ -1,26 +1,103 @@
-plantumlFile(className, statements) ::= <<
+
+delimiters "$", "$"
+
+exitDocument(definitions) ::= <<
+@startuml
+$definitions$
+@enduml
 
 >>
 
-enterObjectTypeDefinition(name, implements) ::= <<
-class <name> {
-
->>
-
-exitObjectTypeDefinition() ::= <<
+inputObjectTypeDefinition(name, inputValues) ::= <<
+class $name$ <<input\>>{
+$inputValues$
 }
 
 >>
-enterTypeName(name) ::= <<
-<name>
->>
 
-enterFieldDefinition(name, type) ::= <<
-	+{field} <name>: 
->>
-
-enterListType(type) ::= <<
-	 <type>
+enumTypeDefinition(name, enumValues) ::= <<
+enum $name$ {
+$enumValues$
+}
 
 >>
 
+enumValue(value) ::= <<
+$value$
+>>
+
+
+scalarTypeDefinition(name) ::= <<
+class $name$ {
+}
+
+>>
+
+objectTypeDefinition(name, fields, listFields) ::= <<
+class $name$ {
+	$fields$
+}
+$listFields$
+
+>>
+
+interfaceTypeDefinition(name, fields) ::= <<
+interface $name$ {
+	$fields$
+}
+
+>>
+
+unionTypeDefinition(name, members) ::= <<
+
+>>
+
+exitType(name) ::= <<
+$name$
+>>
+
+
+exitTypeName(name) ::= <<
+$name$
+>>
+
+fieldDefinition(name, type) ::= <<
++{field} $type$ $name$
+	
+>>
+
+inputFieldDefinition(name, type, defaultValue) ::= <<
++{field} $type$ $name$ $defaultValue$
+	
+>>
+
+
+fieldListType(fieldName, typeName) ::= <<
+ 0..1 - 0..* $typeName$ : $fieldName$
+
+>>
+
+exitNonNullType(name) ::= <<
+$name$
+>>
+
+association(typeA, nameA, cardinalityA, typeB, nameB, cardinalityB) ::= <<
+$typeA$ $cardinaltyA$ --> $cardinaltyB$ $typeB$ : $nameA$
+
+>>
+
+oneToMany() ::= <<
+1..*
+>>
+
+manyToOne() ::= <<
+*..1
+>>
+
+manyToMany() ::= <<
+*..*
+>>
+
+zeroOrOne() ::= <<
+0..1
+>>
