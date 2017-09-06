@@ -33,18 +33,19 @@ class $name$ {
 
 >>
 
-objectTypeDefinition(name, fields, listFields) ::= <<
+objectTypeDefinition(name, fields, linkFields) ::= <<
 class $name$ {
 	$fields$
 }
-$listFields$
+$linkFields$
 
 >>
 
-interfaceTypeDefinition(name, fields) ::= <<
+interfaceTypeDefinition(name, fields, linkFields) ::= <<
 interface $name$ {
 	$fields$
 }
+$linkFields$
 
 >>
 
@@ -61,6 +62,11 @@ exitTypeName(name) ::= <<
 $name$
 >>
 
+operationDefinition(name, params, type) ::= <<
++{operation} $type$ $name$($params$)
+	
+>>
+
 fieldDefinition(name, type) ::= <<
 +{field} $type$ $name$
 	
@@ -73,16 +79,15 @@ inputFieldDefinition(name, type, defaultValue) ::= <<
 
 
 fieldListType(fieldName, typeName) ::= <<
- 0..1 - 0..* $typeName$ : $fieldName$
-
+$typeName$ 
 >>
 
-exitNonNullType(name) ::= <<
-$name$
+nonNullType(name) ::= <<
+1 $name$
 >>
 
-association(typeA, nameA, cardinalityA, typeB, nameB, cardinalityB) ::= <<
-$typeA$ $cardinaltyA$ --> $cardinaltyB$ $typeB$ : $nameA$
+association(typeA, nameA, typeB, nameB, cardinalityB) ::= <<
+$typeA$ --> $cardinalityB$ $typeB$ : $nameA$
 
 >>
 

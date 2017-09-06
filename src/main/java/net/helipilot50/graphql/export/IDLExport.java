@@ -4,7 +4,9 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
@@ -28,6 +30,7 @@ import net.helipilot50.graphql.export.grammar.GraphQLParser.InputObjectTypeDefin
 import net.helipilot50.graphql.export.grammar.GraphQLParser.InputValueDefinitionContext;
 import net.helipilot50.graphql.export.grammar.GraphQLParser.InterfaceTypeDefinitionContext;
 import net.helipilot50.graphql.export.grammar.GraphQLParser.ListTypeContext;
+import net.helipilot50.graphql.export.grammar.GraphQLParser.NonNullTypeContext;
 import net.helipilot50.graphql.export.grammar.GraphQLParser.ObjectTypeDefinitionContext;
 import net.helipilot50.graphql.export.grammar.GraphQLParser.ScalarTypeDefinitionContext;
 import net.helipilot50.graphql.export.grammar.GraphQLParser.TypeContext;
@@ -42,13 +45,21 @@ public class IDLExport extends GraphQLBaseListener{
 	private ParseTreeProperty<ST> code = new ParseTreeProperty<ST>();
 	private GraphQLParser parser;
 	private ParseTreeWalker walker = new ParseTreeWalker();
-	private List<FieldDefinitionContext> listFields = new ArrayList<FieldDefinitionContext>();
+	
+	private List<FieldDefinitionContext> linkFields = new ArrayList<FieldDefinitionContext>();
+	private Set<String> systemTypes = new HashSet<String>();
 
 	private static Logger log = Logger.getLogger(IDLExport.class);
 
 	public IDLExport() {
 		super();
+		systemTypes.add("int");
+		systemTypes.add("float");
+		systemTypes.add("string");
+		systemTypes.add("boolean");
+		
 	}
+	
 	public void generate(String inputFile, File outputFile) throws IOException{
 		log.debug("Generating file: " + inputFile.toString());
 		String name = outputFile.getName();
@@ -78,6 +89,10 @@ public class IDLExport extends GraphQLBaseListener{
 		if (st != null)
 			log.debug("Rendered: " + st.render());
 		code.put(ctx, st);
+	}
+	
+	private boolean isSystemType(String typeName){
+		return systemTypes.contains(typeName.toLowerCase());
 	}
 
 	@Override
@@ -128,7 +143,7 @@ public class IDLExport extends GraphQLBaseListener{
 
 	@Override
 	public void enterObjectTypeDefinition(ObjectTypeDefinitionContext ctx) {
-		listFields.clear();
+		linkFields.clear();
 		super.enterObjectTypeDefinition(ctx);
 	}
 	@Override
@@ -141,20 +156,84 @@ public class IDLExport extends GraphQLBaseListener{
 				st.add("fields", code.get(field));
 			}
 		}
-		for (FieldDefinitionContext fieldDefinition : listFields){
+		for (FieldDefinitionContext fieldDefinition : linkFields){
 			ST typeST = getTemplateFor("association");
 			ST one2Many = getTemplateFor("oneToMany");
 			ST zeroOrOne = getTemplateFor("zeroOrOne");
 			typeST.add("typeA", typeName);
-			typeST.add("cardinalityA", zeroOrOne);
-			typeST.add("typeB", fieldDefinition.type().listType().type().getText());
-			typeST.add("cardinalityB", one2Many);
+			//typeST.add("cardinalityA", zeroOrOne);
+			
+			if (fieldDefinition.type().listType() !=null){
+				typeST.add("typeB", code.get(fieldDefinition.type().listType()));
+				typeST.add("cardinalityB", one2Many);
+			} else if (fieldDefinition.type().nonNullType() !=null) {
+				typeST.add("typeB", code.get(fieldDefinition.type().nonNullType()));
+				typeST.add("cardinalityB", zeroOrOne);
+			} else
+				typeST.add("typeB", fieldDefinition.type().getText());
+			
+			
 			typeST.add("nameB", typeName.toLowerCase());
 			typeST.add("nameA", fieldDefinition.name().getText());
-			st.add("listFields", typeST);
+			st.add("linkFields", typeST);
 		}
 		putCode(ctx, st);
 	}
+	
+	@Override
+	public void exitFieldDefinition(FieldDefinitionContext ctx) {
+		TypeContext typeContext = ctx.type();
+		/*
+		 * if the field type is not a scalar, create a link to the type
+		 */
+		TypeContext typeCtx = ctx.type();
+		boolean systemType = false;
+		if (typeCtx.listType()!=null)
+			systemType = isSystemType(typeCtx.listType().type().typeName().getText());
+		else if (typeCtx.nonNullType()!=null)
+			systemType = isSystemType(typeCtx.nonNullType().typeName().getText());
+		else 
+			systemType = isSystemType(typeCtx.typeName().getText());
+		if (systemType){
+			ST st = getTemplateFor("fieldDefinition");
+			st.add("name", ctx.name().getText());
+			st.add("type", code.get(typeCtx));
+			putCode(ctx, st);
+		} else {
+			linkFields.add(ctx);
+		} 
+
+	}
+	@Override
+	public void exitType(TypeContext ctx) {
+		ST st = getTemplateFor("exitTypeName");
+		String typeName = "";
+		if (ctx.listType()!=null)
+			typeName = ctx.listType().type().typeName().getText();
+		else if (ctx.nonNullType()!=null)
+			typeName = ctx.nonNullType().typeName().getText();
+		else 
+			typeName = ctx.typeName().getText();
+		st.add("name", typeName);
+		putCode(ctx, st);
+	}
+
+	@Override
+	public void exitListType(ListTypeContext ctx) {
+		ST st = getTemplateFor("fieldListType");
+		st.add("typeName", ctx.type().getText());
+		putCode(ctx, st);
+	}
+	
+	@Override
+	public void exitNonNullType(NonNullTypeContext ctx) {
+		ST st = getTemplateFor("nonNullType");
+		st.add("name", ctx.typeName());
+		putCode(ctx, st);
+	}
+
+
+	
 	@Override
 	public void exitInputObjectTypeDefinition(InputObjectTypeDefinitionContext ctx) {
 		ST st = getTemplateFor("inputObjectTypeDefinition");
@@ -202,40 +281,6 @@ public class IDLExport extends GraphQLBaseListener{
 		st.add("name", ctx.name().getText());
 		putCode(ctx, st);
 	}
-
-	@Override
-	public void exitFieldDefinition(FieldDefinitionContext ctx) {
-		TypeContext typeContext = ctx.type();
-		if (typeContext.listType()!=null){
-			listFields.add(ctx);
-		} else{
-			ST st = getTemplateFor("fieldDefinition");
-			st.add("name", ctx.name().getText());
-			st.add("type", code.get(typeContext));
-			putCode(ctx, st);
-
-		}
-
-	}
-	@Override
-	public void exitType(TypeContext ctx) {
-		ST st = null;
-		 if (ctx.typeName()!= null){
-			st = getTemplateFor("exitTypeName");
-			st.add("name", ctx.typeName().getText());
-		} else if (ctx.nonNullType()!=null) {
-			st = getTemplateFor("exitNonNullType");
-			st.add("name", ctx.nonNullType().getText());
-		}
-		putCode(ctx, st);
-	}
-
-	//	@Override
-	//	public void exitListType(ListTypeContext ctx) {
-	//		ST st = getTemplateFor("enterListType");
-	//		st.add("type", ctx.type().getText());
-	//		putCode(ctx, st);
-	//	}
 
 
 }
