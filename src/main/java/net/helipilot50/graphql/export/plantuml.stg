@@ -19,7 +19,9 @@ class $name$ <<input\>>{
 
 enumTypeDefinition(name, enumValues) ::= <<
 enum $name$ {
-	$enumValues$
+	$enumValues:{v |$v$
+	}$
+	
 }
 
 >>
@@ -40,7 +42,7 @@ class $name$ {
 	$methods$
 }
 $if(linkFields)$$linkFields$$endif$
-$interfaces:{z|$z$<|--name }$
+$interfaces:{z|$z$<|--$name$ }$
 
 >>
 
@@ -63,8 +65,8 @@ $name$
 >>
 
 
-exitTypeName(name) ::= <<
-$name$
+type(type) ::= <<
+$type$
 >>
 
 

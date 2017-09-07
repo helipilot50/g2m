@@ -28,6 +28,7 @@ import net.helipilot50.graphql.export.grammar.GraphQLParser.DefinitionContext;
 import net.helipilot50.graphql.export.grammar.GraphQLParser.DocumentContext;
 import net.helipilot50.graphql.export.grammar.GraphQLParser.EnumTypeDefinitionContext;
 import net.helipilot50.graphql.export.grammar.GraphQLParser.EnumValueContext;
+import net.helipilot50.graphql.export.grammar.GraphQLParser.EnumValueDefinitionContext;
 import net.helipilot50.graphql.export.grammar.GraphQLParser.FieldDefinitionContext;
 import net.helipilot50.graphql.export.grammar.GraphQLParser.ImplementsInterfacesContext;
 import net.helipilot50.graphql.export.grammar.GraphQLParser.InputObjectTypeDefinitionContext;
@@ -285,15 +286,13 @@ public class IDLExport extends GraphQLBaseListener{
 
 	@Override
 	public void exitType(TypeContext ctx) {
-		ST st = getTemplateFor("exitTypeName");
-		String typeName = "";
+		ST st = getTemplateFor("type");
 		if (ctx.listType()!=null)
-			typeName = ctx.listType().type().typeName().getText();
+			st.add("type", code.get(ctx.listType()));
 		else if (ctx.nonNullType()!=null)
-			typeName = ctx.nonNullType().typeName().getText();
+			st.add("type", ctx.nonNullType().typeName().getText());
 		else 
-			typeName = ctx.typeName().getText();
-		st.add("name", typeName);
+			st.add("type", ctx.typeName().getText());
 		putCode(ctx, st);
 	}
 
@@ -334,7 +333,13 @@ public class IDLExport extends GraphQLBaseListener{
 				st.add("enumValues", code.get(enumValue));
 			}
 		}
+		String enumString = st.render();
 		putCode(ctx, st);
+	}
+	
+	@Override
+	public void exitEnumValueDefinition(EnumValueDefinitionContext ctx) {
+		putCode(ctx, code.get(ctx.enumValue()));
 	}
 
 	@Override
