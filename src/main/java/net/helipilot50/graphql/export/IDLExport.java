@@ -1,8 +1,10 @@
 package net.helipilot50.graphql.export;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -21,11 +23,13 @@ import org.stringtemplate.v4.STGroupFile;
 import net.helipilot50.graphql.export.grammar.GraphQLBaseListener;
 import net.helipilot50.graphql.export.grammar.GraphQLLexer;
 import net.helipilot50.graphql.export.grammar.GraphQLParser;
+import net.helipilot50.graphql.export.grammar.GraphQLParser.ArgumentsDefinitionContext;
 import net.helipilot50.graphql.export.grammar.GraphQLParser.DefinitionContext;
 import net.helipilot50.graphql.export.grammar.GraphQLParser.DocumentContext;
 import net.helipilot50.graphql.export.grammar.GraphQLParser.EnumTypeDefinitionContext;
 import net.helipilot50.graphql.export.grammar.GraphQLParser.EnumValueContext;
 import net.helipilot50.graphql.export.grammar.GraphQLParser.FieldDefinitionContext;
+import net.helipilot50.graphql.export.grammar.GraphQLParser.ImplementsInterfacesContext;
 import net.helipilot50.graphql.export.grammar.GraphQLParser.InputObjectTypeDefinitionContext;
 import net.helipilot50.graphql.export.grammar.GraphQLParser.InputValueDefinitionContext;
 import net.helipilot50.graphql.export.grammar.GraphQLParser.InterfaceTypeDefinitionContext;
@@ -35,8 +39,12 @@ import net.helipilot50.graphql.export.grammar.GraphQLParser.ObjectTypeDefinition
 import net.helipilot50.graphql.export.grammar.GraphQLParser.ScalarTypeDefinitionContext;
 import net.helipilot50.graphql.export.grammar.GraphQLParser.TypeContext;
 import net.helipilot50.graphql.export.grammar.GraphQLParser.TypeDefinitionContext;
+import net.helipilot50.graphql.export.grammar.GraphQLParser.TypeNameContext;
 import net.helipilot50.graphql.export.grammar.GraphQLParser.TypeSystemDefinitionContext;
 import net.helipilot50.graphql.export.grammar.GraphQLParser.UnionTypeDefinitionContext;
+import net.sourceforge.plantuml.FileFormat;
+import net.sourceforge.plantuml.FileFormatOption;
+import net.sourceforge.plantuml.SourceStringReader;
 
 
 
@@ -45,9 +53,13 @@ public class IDLExport extends GraphQLBaseListener{
 	private ParseTreeProperty<ST> code = new ParseTreeProperty<ST>();
 	private GraphQLParser parser;
 	private ParseTreeWalker walker = new ParseTreeWalker();
-	
+
 	private List<FieldDefinitionContext> linkFields = new ArrayList<FieldDefinitionContext>();
 	private Set<String> systemTypes = new HashSet<String>();
+	
+	boolean hideQuery = true;
+	boolean hideMutation = true;
+	boolean hideSubscription = true;
 
 	private static Logger log = Logger.getLogger(IDLExport.class);
 
@@ -57,22 +69,32 @@ public class IDLExport extends GraphQLBaseListener{
 		systemTypes.add("float");
 		systemTypes.add("string");
 		systemTypes.add("boolean");
-		
+
 	}
-	
-	public void generate(String inputFile, File outputFile) throws IOException{
-		log.debug("Generating file: " + inputFile.toString());
-		String name = outputFile.getName();
-		name = name.substring(0, name.lastIndexOf('.'));
-		org.antlr.v4.runtime.CharStream stream = CharStreams.fromFileName(inputFile);
+
+	public void generate(String inputFileName, String outputFilePrefix) throws IOException{
+		log.debug("Exporting file: " + inputFileName);
+		org.antlr.v4.runtime.CharStream stream = CharStreams.fromFileName(inputFileName);
 		GraphQLLexer lexer = new GraphQLLexer(stream);
 		CommonTokenStream tokens = new CommonTokenStream(lexer);
-		String code = generate(tokens, name);
+		String plantUMLcode = generate(tokens);
+		SourceStringReader reader = new SourceStringReader(plantUMLcode);
+		final ByteArrayOutputStream os = new ByteArrayOutputStream();
+		// Write the first image to "os"
+		String desc = reader.generateImage(os, new FileFormatOption(FileFormat.SVG));
+		os.close();
+		// The XML is stored into svg
+		final String svg = new String(os.toByteArray(), Charset.forName("UTF-8"));
+		File outputFile = new File(outputFilePrefix + ".svg");
 		FileWriter fw = new FileWriter(outputFile);
-		fw.write(code);
+		fw.write(svg);
+		fw.close();
+		outputFile = new File(outputFilePrefix + ".plantuml");
+		fw = new FileWriter(outputFile);
+		fw.write(plantUMLcode);
 		fw.close();
 	}
-	private String generate(CommonTokenStream tokens, String name){
+	private String generate(CommonTokenStream tokens){
 		parser = new GraphQLParser(tokens);
 		ParseTree tree = parser.document();
 		walker.walk(this, tree);
@@ -90,7 +112,7 @@ public class IDLExport extends GraphQLBaseListener{
 			log.debug("Rendered: " + st.render());
 		code.put(ctx, st);
 	}
-	
+
 	private boolean isSystemType(String typeName){
 		return systemTypes.contains(typeName.toLowerCase());
 	}
@@ -107,6 +129,15 @@ public class IDLExport extends GraphQLBaseListener{
 
 			}
 		}
+//		if (hideQuery){
+//			st.add("hide", "hide Query\n");
+//		}
+//		if (hideMutation){
+//			st.add("hide", "hide Mutation\n");
+//		}
+//		if (hideSubscription){
+//			st.add("hide", "hide Subscription\n");
+//		}
 		putCode(ctx, st);
 	}
 
@@ -151,41 +182,62 @@ public class IDLExport extends GraphQLBaseListener{
 		ST st = getTemplateFor("objectTypeDefinition");
 		String typeName = ctx.name().getText();
 		st.add("name", typeName);
+		if (ctx.implementsInterfaces()!= null){
+		for (TypeNameContext type : ctx.implementsInterfaces().typeName())
+			st.add("interfaces", type.getText());
+		}
 		if (ctx.fieldDefinition()!=null){
 			for (ParseTree field: ctx.fieldDefinition()){
 				st.add("fields", code.get(field));
 			}
 		}
 		for (FieldDefinitionContext fieldDefinition : linkFields){
-			ST typeST = getTemplateFor("association");
+			ST associationST = getTemplateFor("association");
 			ST one2Many = getTemplateFor("oneToMany");
 			ST zeroOrOne = getTemplateFor("zeroOrOne");
-			typeST.add("typeA", typeName);
+			ST exactlyOne = getTemplateFor("exactlyOne");
+			associationST.add("typeA", typeName);
 			//typeST.add("cardinalityA", zeroOrOne);
-			
+
 			if (fieldDefinition.type().listType() !=null){
-				typeST.add("typeB", code.get(fieldDefinition.type().listType()));
-				typeST.add("cardinalityB", one2Many);
+				associationST.add("typeB", fieldDefinition.type().listType().type().getText());
+				//associationST.add("cardinalityB", one2Many);
+
 			} else if (fieldDefinition.type().nonNullType() !=null) {
-				typeST.add("typeB", code.get(fieldDefinition.type().nonNullType()));
-				typeST.add("cardinalityB", zeroOrOne);
+				associationST.add("typeB", code.get(fieldDefinition.type().nonNullType()));
+				//associationST.add("cardinalityB", exactlyOne);
 			} else
-				typeST.add("typeB", fieldDefinition.type().getText());
-			
-			
-			typeST.add("nameB", typeName.toLowerCase());
-			typeST.add("nameA", fieldDefinition.name().getText());
-			st.add("linkFields", typeST);
+				associationST.add("typeB", fieldDefinition.type().getText());
+
+			associationST.add("nameB", typeName.toLowerCase());
+			associationST.add("nameA", fieldDefinition.name().getText());
+			//String linkString = associationST.render();
+			st.add("linkFields", associationST);
+
+			ST methodST = getTemplateFor("operation");
+			methodST.add("name", fieldDefinition.name().getText());
+			if (fieldDefinition.argumentsDefinition()!=null){
+				for (InputValueDefinitionContext argDef: fieldDefinition.argumentsDefinition().inputValueDefinition()){
+					methodST.add("arguments", code.get(argDef));
+				}
+			}
+			if (fieldDefinition.type().listType() !=null){
+				methodST.add("type", code.get(fieldDefinition.type().listType()));
+			} else
+				methodST.add("type", fieldDefinition.type().getText());
+			st.add("methods", methodST);
+
 		}
 		putCode(ctx, st);
 	}
 	
 	@Override
+	public void exitImplementsInterfaces(ImplementsInterfacesContext ctx) {
+		ST st = getTemplateFor("implementsInterface");
+	}
+
+	@Override
 	public void exitFieldDefinition(FieldDefinitionContext ctx) {
-		TypeContext typeContext = ctx.type();
-		/*
-		 * if the field type is not a scalar, create a link to the type
-		 */
 		TypeContext typeCtx = ctx.type();
 		boolean systemType = false;
 		if (typeCtx.listType()!=null)
@@ -194,16 +246,43 @@ public class IDLExport extends GraphQLBaseListener{
 			systemType = isSystemType(typeCtx.nonNullType().typeName().getText());
 		else 
 			systemType = isSystemType(typeCtx.typeName().getText());
-		if (systemType){
+
+		/*
+		 * if the field type is not a scalar, create a link to the type
+		 */
+		if (!systemType)
+			linkFields.add(ctx);
+		else {
 			ST st = getTemplateFor("fieldDefinition");
 			st.add("name", ctx.name().getText());
 			st.add("type", code.get(typeCtx));
 			putCode(ctx, st);
-		} else {
-			linkFields.add(ctx);
-		} 
+		}
 
 	}
+
+	@Override
+	public void exitArgumentsDefinition(ArgumentsDefinitionContext ctx) {
+		ST st = getTemplateFor("argumentsDefinition");
+		if (ctx.inputValueDefinition()!=null){
+			for (ParseTree inputValueDefinition: ctx.inputValueDefinition()){
+				st.add("arguments", code.get(inputValueDefinition));
+			}
+		}
+		putCode(ctx, st);
+	}
+
+	@Override
+	public void exitInputValueDefinition(InputValueDefinitionContext ctx) {
+		ST st = getTemplateFor("inputValueDefinition");
+		st.add("name", ctx.name().getText());
+		st.add("type", code.get(ctx.type()));
+		if (ctx.defaultValue()!=null){
+			st.add("defaultValue", ctx.defaultValue().value().getText());
+		}
+		putCode(ctx, st);
+	}
+
 	@Override
 	public void exitType(TypeContext ctx) {
 		ST st = getTemplateFor("exitTypeName");
@@ -220,11 +299,11 @@ public class IDLExport extends GraphQLBaseListener{
 
 	@Override
 	public void exitListType(ListTypeContext ctx) {
-		ST st = getTemplateFor("fieldListType");
+		ST st = getTemplateFor("listType");
 		st.add("typeName", ctx.type().getText());
 		putCode(ctx, st);
 	}
-	
+
 	@Override
 	public void exitNonNullType(NonNullTypeContext ctx) {
 		ST st = getTemplateFor("nonNullType");
@@ -233,7 +312,7 @@ public class IDLExport extends GraphQLBaseListener{
 	}
 
 
-	
+
 	@Override
 	public void exitInputObjectTypeDefinition(InputObjectTypeDefinitionContext ctx) {
 		ST st = getTemplateFor("inputObjectTypeDefinition");
@@ -243,16 +322,6 @@ public class IDLExport extends GraphQLBaseListener{
 				st.add("inputValues", code.get(inputValue));
 			}
 		}
-		putCode(ctx, st);
-	}
-	
-	@Override
-	public void exitInputValueDefinition(InputValueDefinitionContext ctx) {
-		ST st = getTemplateFor("inputFieldDefinition");
-		st.add("name", ctx.name().getText());
-		st.add("type", code.get(ctx.type()));
-		if (ctx.defaultValue()!=null)
-			st.add("defaultValue", ctx.defaultValue().getText());
 		putCode(ctx, st);
 	}
 
@@ -267,7 +336,7 @@ public class IDLExport extends GraphQLBaseListener{
 		}
 		putCode(ctx, st);
 	}
-	
+
 	@Override
 	public void exitEnumValue(EnumValueContext ctx) {
 		ST st = getTemplateFor("enumValue");

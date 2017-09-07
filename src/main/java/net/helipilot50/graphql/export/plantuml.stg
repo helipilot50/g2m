@@ -1,23 +1,25 @@
 
 delimiters "$", "$"
 
-exitDocument(definitions) ::= <<
+exitDocument(definitions, hide) ::= <<
 @startuml
 $definitions$
+$hide$
 @enduml
 
 >>
 
 inputObjectTypeDefinition(name, inputValues) ::= <<
 class $name$ <<input\>>{
-$inputValues$
+	$inputValues:{v |$v$
+	}$
 }
 
 >>
 
 enumTypeDefinition(name, enumValues) ::= <<
 enum $name$ {
-$enumValues$
+	$enumValues$
 }
 
 >>
@@ -26,26 +28,29 @@ enumValue(value) ::= <<
 $value$
 >>
 
-
 scalarTypeDefinition(name) ::= <<
-class $name$ {
+class $name$ <<scalar\>>{
 }
 
 >>
 
-objectTypeDefinition(name, fields, linkFields) ::= <<
+objectTypeDefinition(name, interfaces, fields, methods, linkFields) ::= <<
 class $name$ {
 	$fields$
+	$methods$
 }
-$linkFields$
+$if(linkFields)$$linkFields$$endif$
+$interfaces:{z|$z$<|--name }$
 
 >>
 
-interfaceTypeDefinition(name, fields, linkFields) ::= <<
+interfaceTypeDefinition(name, fields, methods, linkFields) ::= <<
 interface $name$ {
 	$fields$
+	$methods$
 }
-$linkFields$
+
+$if(linkFields)$$linkFields$$endif$
 
 >>
 
@@ -62,47 +67,55 @@ exitTypeName(name) ::= <<
 $name$
 >>
 
-operationDefinition(name, params, type) ::= <<
-+{operation} $type$ $name$($params$)
-	
+
+argumentsDefinition(arguments) ::= <<
+$arguments$	
 >>
+
+inputValueDefinition(name, type, defaultValue) ::= <<
+$name$:$type$$if(defaultValue)$ = $defaultValue$$endif$
+>>
+
 
 fieldDefinition(name, type) ::= <<
-+{field} $type$ $name$
-	
+$name$: $type$
+
 >>
 
-inputFieldDefinition(name, type, defaultValue) ::= <<
-+{field} $type$ $name$ $defaultValue$
-	
+operation(name, type, arguments) ::= <<
+$name$($first(arguments):{z|$z$}$$rest(arguments):{z|, $z$}$): $type$ 
+
 >>
 
-
-fieldListType(fieldName, typeName) ::= <<
-$typeName$ 
+listType(typeName) ::= <<
+$typeName$[] 
 >>
 
 nonNullType(name) ::= <<
 1 $name$
 >>
 
-association(typeA, nameA, typeB, nameB, cardinalityB) ::= <<
-$typeA$ --> $cardinalityB$ $typeB$ : $nameA$
+association(typeA, nameA, typeB, nameB) ::= <<
+$typeA$ --> $typeB$ : $nameA$
 
 >>
 
 oneToMany() ::= <<
-1..*
+"1..*"
 >>
 
 manyToOne() ::= <<
-*..1
+"*..1"
 >>
 
 manyToMany() ::= <<
-*..*
+"*..*"
 >>
 
 zeroOrOne() ::= <<
-0..1
+"0..1"
+>>
+
+exactlyOne() ::= <<
+"1"
 >>
