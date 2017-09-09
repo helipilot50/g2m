@@ -118,6 +118,22 @@ zeroOrOne() ::= <<
 "0..1"
 >>
 
+many() ::= <<
+"*"
+>>
+
 exactlyOne() ::= <<
 "1"
+>>
+
+reservedWord(word) ::= <<
+$word$
+>>
+
+normalWord(word) ::= <<
+$word$
+>>
+
+
+reservedWordList() ::= <<
 >>

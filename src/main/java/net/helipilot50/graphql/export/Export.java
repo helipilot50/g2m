@@ -23,8 +23,8 @@ public class Export {
 		try {
 			Options options = new Options();
 			options.addOption("i", "input", true, "input file name ");
-			options.addOption("l", "language", true, "Target language, supported languages: PLANTUML (future: XMI)");
-			options.addOption("o", "output", true, "Output directory name. ");
+			options.addOption("l", "language", true, "Target language, supported languages: PLANTUML, TEXTUML (future: XMI)");
+			options.addOption("o", "output", false, "Output directory name. ");
 			options.addOption("h", "help", false, "Print usage.");
 
 			CommandLineParser parser = new PosixParser();
@@ -48,8 +48,8 @@ public class Export {
 					System.exit(-1);
 				}
 
-				String languageString = cl.getOptionValue("l", "PLANTUML");
-				//Language language = Language.valueOf(languageString);
+				String languageString = cl.getOptionValue("l", "TEXTUML");
+				Language language = Language.valueOf(languageString);
 
 
 				String outputFileName = inputFileName.substring(0, inputFileName.lastIndexOf("."));
@@ -61,7 +61,7 @@ public class Export {
 				log.debug("Output directory: " + outputFileName);
 				log.debug("Language: " + languageString);
 				IDLExport exporter = new IDLExport();
-				exporter.generate(inputFileName, outputFileName);
+				exporter.generate(inputFileName, outputFileName, language);
 				log.info("Completed export of " + inputFileName);
 
 		} catch (Exception e) {
