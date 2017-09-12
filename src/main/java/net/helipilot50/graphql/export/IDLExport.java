@@ -66,10 +66,6 @@ public class IDLExport extends GraphQLBaseListener{
 	
 	Language language = null;
 	
-	boolean hideQuery = true;
-	boolean hideMutation = true;
-	boolean hideSubscription = true;
-
 	private static Logger log = Logger.getLogger(IDLExport.class);
 
 	public IDLExport() {
@@ -90,31 +86,31 @@ public class IDLExport extends GraphQLBaseListener{
 		String umlCode = generate(tokens);
 
 		switch (language){
+		/*
+		 * PlantUML
+		 */
 		case PLANTUML: {
-			/*
-			 * PlantUML
-			 */
+			// write as SVG
 			SourceStringReader reader = new SourceStringReader(umlCode);
-			final ByteArrayOutputStream os = new ByteArrayOutputStream();
-			// Write the first image to "os"
+			ByteArrayOutputStream os = new ByteArrayOutputStream();
 			String desc = reader.generateImage(os, new FileFormatOption(FileFormat.SVG));
 			os.close();
-			// The XML is stored into svg
 			final String svg = new String(os.toByteArray(), Charset.forName("UTF-8"));
 			File outputFile = new File(outputFilePrefix + ".svg");
 			FileWriter fw = new FileWriter(outputFile);
 			fw.write(svg);
 			fw.close();
-			outputFile = new File(outputFilePrefix + ".plantuml");
+			// write as puml text
+			outputFile = new File(outputFilePrefix + ".puml");
 			fw = new FileWriter(outputFile);
 			fw.write(umlCode);
 			fw.close();
 			break;
 		}
+		/*
+		 * TextUML
+		 */
 		case TEXTUML: {
-			/*
-			 * TextUML
-			 */
 			File outputFile = new File(outputFilePrefix + ".tuml");
 			FileWriter fw = new FileWriter(outputFile);
 			fw.write(umlCode);
@@ -183,15 +179,6 @@ public class IDLExport extends GraphQLBaseListener{
 
 			}
 		}
-//		if (hideQuery){
-//			st.add("hide", "hide Query\n");
-//		}
-//		if (hideMutation){
-//			st.add("hide", "hide Mutation\n");
-//		}
-//		if (hideSubscription){
-//			st.add("hide", "hide Subscription\n");
-//		}
 		putCode(ctx, st);
 	}
 
@@ -234,8 +221,8 @@ public class IDLExport extends GraphQLBaseListener{
 	@Override
 	public void exitObjectTypeDefinition(ObjectTypeDefinitionContext ctx) {
 		ST st = getTemplateFor("objectTypeDefinition");
-		ST typeNameST = code.get(ctx.name());
-		st.add("name", typeNameST);
+		ST typeName = templateForSystemType(ctx.name().getText());
+		st.add("name", typeName);
 		if (ctx.implementsInterfaces()!= null){
 		for (TypeNameContext type : ctx.implementsInterfaces().typeName())
 			st.add("interfaces", type.getText());
@@ -247,19 +234,21 @@ public class IDLExport extends GraphQLBaseListener{
 		}
 		for (FieldDefinitionContext fieldDefinition : linkFields){
 			ST associationST = getTemplateFor("association");
-			associationST.add("typeA", typeNameST);
+			associationST.add("typeA", typeName);
 
 			if (fieldDefinition.type().listType() !=null){
-				String typeName = fieldDefinition.type().listType().type().getText();
+				//String typeName = fieldDefinition.type().listType().type().getText();
+				ST listTypeNameST = code.get(fieldDefinition.type().listType().type());
+				String listTypeName = listTypeNameST.render();
 				
-				associationST.add("typeB", templateForReservedWord(typeName));
+				associationST.add("typeB", templateForReservedWord(listTypeName));
 
 			} else if (fieldDefinition.type().nonNullType() !=null) {
 				associationST.add("typeB", code.get(fieldDefinition.type().nonNullType()));
 			} else
 				//associationST.add("typeB", fieldDefinition.type().getText());
 				associationST.add("typeB", code.get(fieldDefinition.type()));
-			String backwardName = typeNameST.render().toLowerCase();
+			String backwardName = typeName.render().toLowerCase();
 			associationST.add("nameB", templateForReservedWord(backwardName));
 			associationST.add("nameA", code.get(fieldDefinition.name()));
 			st.add("linkFields", associationST);
@@ -274,7 +263,7 @@ public class IDLExport extends GraphQLBaseListener{
 			if (fieldDefinition.type().listType() !=null){
 				methodST.add("type", code.get(fieldDefinition.type().listType()));
 			} else
-				methodST.add("type", fieldDefinition.type().getText());
+				methodST.add("type", code.get(fieldDefinition.type()));
 			st.add("methods", methodST);
 
 		}
@@ -359,8 +348,6 @@ public class IDLExport extends GraphQLBaseListener{
 		putCode(ctx, st);
 	}
 
-
-
 	@Override
 	public void exitInputObjectTypeDefinition(InputObjectTypeDefinitionContext ctx) {
 		ST st = getTemplateFor("inputObjectTypeDefinition");
@@ -408,7 +395,9 @@ public class IDLExport extends GraphQLBaseListener{
 	@Override
 	public void exitName(NameContext ctx) {
 		String name = ctx.getText();
-		putCode(ctx, templateForReservedWord(name));
+		ST stx = templateForReservedWord(name);
+		String ststring = stx.render();
+		putCode(ctx, stx);
 	}
 	
 	private ST templateForSystemType(String typeName){
@@ -431,7 +420,7 @@ public class IDLExport extends GraphQLBaseListener{
 			
 		} else {
 			st = getTemplateFor("customType");
-			st.add("typeName", typeName);
+			st.add("typeName", typeName.replaceAll("_+", "."));// Replace _ with . for namespace support
 		}
 		return st;
 	}

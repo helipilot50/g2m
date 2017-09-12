@@ -1,10 +1,16 @@
 
 delimiters "$", "$"
 
-exitDocument(definitions, hide) ::= <<
+
+exitDocument(definitions) ::= <<
+
 @startuml
+Title Generated %date%
+
 $definitions$
-$hide$
+hide Query
+hide Mutation
+
 @enduml
 
 >>
@@ -42,7 +48,7 @@ class $name$ {
 	$methods$
 }
 $if(linkFields)$$linkFields$$endif$
-$interfaces:{z|$z$<|--$name$ }$
+$interfaces:{z|$z$<|..$name$ }$
 
 >>
 
@@ -58,10 +64,6 @@ $if(linkFields)$$linkFields$$endif$
 
 unionTypeDefinition(name, members) ::= <<
 
->>
-
-exitType(name) ::= <<
-$name$
 >>
 
 
@@ -85,7 +87,7 @@ $name$: $type$
 >>
 
 operation(name, type, arguments) ::= <<
-$name$($first(arguments):{z|$z$}$$rest(arguments):{z|, $z$}$): $type$ 
+$name$($arguments; separator=", "$): $type$ 
 
 >>
 
@@ -118,12 +120,37 @@ zeroOrOne() ::= <<
 "0..1"
 >>
 
+zeroToMany() ::= <<
+"0..*"
+>>
+
+
 many() ::= <<
 "*"
 >>
 
 exactlyOne() ::= <<
 "1"
+>>
+
+int() ::= <<
+Integer
+>>
+
+float() ::= <<
+Double
+>>
+
+string() ::= <<
+String
+>>
+
+boolean() ::= <<
+Boolean
+>>
+
+customType(typeName)::= <<
+$typeName$
 >>
 
 reservedWord(word) ::= <<

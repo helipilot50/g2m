@@ -48,7 +48,7 @@ public class Export {
 					System.exit(-1);
 				}
 
-				String languageString = cl.getOptionValue("l", "TEXTUML");
+				String languageString = cl.getOptionValue("l", "PLANTUML");
 				Language language = Language.valueOf(languageString);
 
 
