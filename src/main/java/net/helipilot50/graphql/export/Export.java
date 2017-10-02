@@ -24,7 +24,8 @@ public class Export {
 			Options options = new Options();
 			options.addOption("i", "input", true, "input file name ");
 			options.addOption("l", "language", true, "Target language, supported languages: PLANTUML, TEXTUML (future: XMI)");
-			options.addOption("o", "output", false, "Output directory name. ");
+			options.addOption("p", "package", true, "UML package name");
+			options.addOption("o", "output", true, "Output directory name. ");
 			options.addOption("h", "help", false, "Print usage.");
 
 			CommandLineParser parser = new PosixParser();
@@ -36,33 +37,35 @@ public class Export {
 			}
 
 
-				String inputFileName = cl.getOptionValue("i", "default.gql");
-				log.info("Exporting: " + inputFileName);
-				File inputFile = new File(inputFileName);
-				if (!inputFile.exists()){
-					log.error("Input file does not exist: " + inputFileName);
-					System.exit(-1);
-				}
-				if (!(inputFileName.toLowerCase().endsWith(".gql") )){
-					log.error("Input file is not .gql: " + inputFileName);
-					System.exit(-1);
-				}
+			String inputFileName = cl.getOptionValue("i", "default.gql");
+			log.info("Exporting: " + inputFileName);
+			File inputFile = new File(inputFileName);
+			if (!inputFile.exists()){
+				log.error("Input file does not exist: " + inputFileName);
+				System.exit(-1);
+			}
+			if (!(inputFileName.toLowerCase().endsWith(".gql") )){
+				log.error("Input file is not .gql: " + inputFileName);
+				System.exit(-1);
+			}
 
-				String languageString = cl.getOptionValue("l", "PLANTUML");
-				Language language = Language.valueOf(languageString);
+			String packageString = cl.getOptionValue("p", "root");
+
+			String languageString = cl.getOptionValue("l", "PLANTUML");
+			Language language = Language.valueOf(languageString);
 
 
-				String outputFileName = inputFileName.substring(0, inputFileName.lastIndexOf("."));
+			String outputFileName = inputFileName.substring(0, inputFileName.lastIndexOf("."));
 
-				if (cl.hasOption("o")){
-					outputFileName = cl.getOptionValue("o");
-				}
+			if (cl.hasOption("o")){
+				outputFileName = cl.getOptionValue("o");
+			}
 
-				log.debug("Output directory: " + outputFileName);
-				log.debug("Language: " + languageString);
-				IDLExport exporter = new IDLExport();
-				exporter.generate(inputFileName, outputFileName, language);
-				log.info("Completed export of " + inputFileName);
+			log.debug("Output directory: " + outputFileName);
+			log.debug("Language: " + languageString);
+			IDLExport exporter = new IDLExport();
+			exporter.generate(inputFileName, outputFileName, language, packageString);
+			log.info("Completed export of " + inputFileName);
 
 		} catch (Exception e) {
 			log.error("Critical error", e);
@@ -81,7 +84,7 @@ public class Export {
 		log.info(sw.toString());
 		printHelp();
 	}
-	
+
 	public static void printHelp(){
 		URL helpUrl = Export.class.getResource("commands.txt");
 		BufferedReader br;
@@ -94,7 +97,7 @@ public class Export {
 					log.info(line);
 					line = br.readLine();
 				}
-				
+
 			} finally {
 				br.close();
 			}

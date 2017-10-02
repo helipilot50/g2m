@@ -4,37 +4,30 @@ delimiters "$", "$"
 
 exitDocument(definitions, package) ::= <<
 
-@startuml
-Title Generated %date%
-
-package $package$ {
-
+package $package$;
+import mdd_types;
+	
 	$definitions$
-
-}
-
-hide Query
-hide Mutation
-
-@enduml
+	
+end.
 
 >>
 
 inputObjectTypeDefinition(name, inputValues, linkFields) ::= <<
-class $name$ <<input\>>{
-	$inputValues:{v |$v$
+class $name$
+	$inputValues:{v |attribute $v$;
 	}$
-}
+end;
 $if(linkFields)$$linkFields$$endif$
 
 >>
 
 enumTypeDefinition(name, enumValues) ::= <<
-enum $name$ {
-	$enumValues:{v |$v$
+enumeration $name$
+	$enumValues:{v |$v$;
 	}$
 	
-}
+end;
 
 >>
 
@@ -43,40 +36,32 @@ $value$
 >>
 
 scalarTypeDefinition(name) ::= <<
-class $name$ <<scalar\>>{
-}
+class $name$
+end;
 
 >>
 
 objectTypeDefinition(name, interfaces, fields, methods, linkFields) ::= <<
-class $name$ {
+class $name$$if(interfaces)$ implements $interfaces:{z|$z$}$$endif$
 	$fields$
 	$methods$
-}
+end;
+
 $if(linkFields)$$linkFields$$endif$
-$interfaces:{z|$z$ <|.. $name$ }$
 
 >>
 
 interfaceTypeDefinition(name, fields, methods, linkFields) ::= <<
-interface $name$ {
+interface $name$
 	$fields$
 	$methods$
-}
+end;
 
 $if(linkFields)$$linkFields$$endif$
 
 >>
 
 unionTypeDefinition(name, members) ::= <<
-class $name$ <<union\>>{
-}
-
-$members:{z|$aggregation(name, z)$}$
-
->>
-aggregation(from, to) ::= <<
-$from$ *--> $exactlyOne()$ $to$
 
 >>
 
@@ -90,60 +75,62 @@ $arguments$
 >>
 
 inputValueDefinition(name, type, defaultValue) ::= <<
-$name$:$type$$if(defaultValue)$ = $defaultValue$$endif$
+$name$:$type$$if(defaultValue)$ := $defaultValue$$endif$
 >>
 
 
 fieldDefinition(name, type) ::= <<
-{field} $name$: $type$
+attribute $name$: $type$;
 
 >>
 
 operation(name, type, arguments) ::= <<
-{method} $name$($arguments; separator=", "$): $type$ 
+operation $name$($first(arguments):{z|$z$}$$rest(arguments):{z|, $z$}$): $type$; 
 
 >>
 
 listType(typeName) ::= <<
-$typeName$[] 
+$typeName$$zeroToMany()$ 
 >>
 
 nonNullType(name) ::= <<
-1 $name$
+$name$$exactlyOne()$
 >>
 
 association(typeA, nameA, cardA, typeB, nameB, cardB) ::= <<
-$typeA$ $cardA$ --> $cardB$ $typeB$ : $nameA$
+association $nameA$2$nameB$
+  role $nameA$ : $typeB$$cardB$;
+  navigable role $nameB$ : $typeA$$cardA$; 
+end;
 
 >>
 
 oneToMany() ::= <<
-"1..*"
+[1,*]
 >>
 
 manyToOne() ::= <<
-"*..1"
+[*,1]
 >>
 
 manyToMany() ::= <<
-"*..*"
+[*,*]
 >>
 
 zeroOrOne() ::= <<
-"0..1"
+[0,1]
 >>
 
 zeroToMany() ::= <<
-"0..*"
+[0,*]
 >>
 
-
 many() ::= <<
-"*"
+[*]
 >>
 
 exactlyOne() ::= <<
-"1"
+[1]
 >>
 
 int() ::= <<
@@ -165,20 +152,128 @@ Boolean
 customType(typeName, package)::= <<
 $typeName$
 >>
-
 packageSeperator() ::= <<
 _
 >>
 
 
 reservedWord(word) ::= <<
-$word$
+\\$word$
 >>
 
 normalWord(word) ::= <<
 $word$
 >>
 
-
 reservedWordList() ::= <<
+abstract 
+access
+actor
+aggregation
+alias
+and
+any
+apply
+association
+as
+attribute
+begin
+broadcast
+by
+call
+catch
+class
+create
+component
+composition
+connector
+datatype
+delete
+derived
+destroy
+do
+else
+elseif
+end
+entry
+enumeration
+exit
+extends
+extent
+external
+false
+finally
+function
+id
+if
+implements
+import
+in
+initial
+inout
+interface
+invariant
+is
+link
+load
+model
+navigable
+new
+nonunique
+not
+null
+on
+operation
+or
+ordered
+out
+package
+port
+postcondition
+precondition
+private
+primitive
+profile
+property
+protected
+provided
+public
+query
+raise
+raises
+read
+readonly
+reception
+reference
+repeat
+required
+return
+role
+self
+send
+signal
+specializes
+state
+statemachine
+static
+status
+stereotype
+subsets
+terminate
+then
+to
+transition
+true
+try
+type
+unique
+unlink
+unordered
+until
+update
+var
+when
+where
+while
+
 >>

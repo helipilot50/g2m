@@ -10,14 +10,14 @@ grammar GraphQL;
 document : definition+;
 
 definition:
-operationDefinition |
-fragmentDefinition |
-typeSystemDefinition
-;
+	operationDefinition |
+	fragmentDefinition |
+	typeSystemDefinition
+	;
 
 operationDefinition:
-selectionSet |
-operationType  name? variableDefinitions? directives? selectionSet;
+	selectionSet |
+	operationType  name? variableDefinitions? directives? selectionSet;
 
 operationType : SUBSCRIPTION | MUTATION | QUERY;
 
@@ -34,9 +34,9 @@ defaultValue : '=' value;
 selectionSet :  '{' selection+ '}';
 
 selection :
-field |
-fragmentSpread |
-inlineFragment;
+	field |
+	fragmentSpread |
+	inlineFragment;
 
 field : alias? name arguments? directives? selectionSet?;
 
@@ -111,30 +111,30 @@ directive :'@' name arguments?;
 type : typeName | listType | nonNullType;
 
 typeName : name;
-listType : '[' type ']';
-nonNullType: typeName '!' | listType '!';
+	listType : '[' type ']';
+	nonNullType: typeName '!' | listType '!';
 
 
 // Type System
 typeSystemDefinition:
-schemaDefinition |
-typeDefinition |
-typeExtensionDefinition |
-directiveDefinition
-;
+	schemaDefinition |
+	typeDefinition |
+	typeExtensionDefinition |
+	directiveDefinition
+	;
 
 schemaDefinition : SCHEMA directives? '{' operationTypeDefinition+ '}';
 
 operationTypeDefinition : operationType ':' typeName;
 
 typeDefinition:
-scalarTypeDefinition |
-objectTypeDefinition |
-interfaceTypeDefinition |
-unionTypeDefinition |
-enumTypeDefinition |
-inputObjectTypeDefinition
-;
+	scalarTypeDefinition |
+	objectTypeDefinition |
+	interfaceTypeDefinition |
+	unionTypeDefinition |
+	enumTypeDefinition |
+	inputObjectTypeDefinition
+	;
 
 scalarTypeDefinition : SCALAR name directives?;
 
@@ -153,9 +153,9 @@ interfaceTypeDefinition : INTERFACE name directives? '{' fieldDefinition+ '}';
 unionTypeDefinition : UNION name directives? '=' unionMembers;
 
 unionMembers:
-typeName |
-unionMembers '|' typeName
-;
+	typeName |
+	unionMembers '|' typeName
+	;
 
 enumTypeDefinition : ENUM name directives? '{' enumValueDefinition+ '}';
 
@@ -170,9 +170,9 @@ directiveDefinition : DIRECTIVE '@' name argumentsDefinition? 'on' directiveLoca
 directiveLocation : name;
 
 directiveLocations :
-directiveLocation |
-directiveLocations '|' directiveLocation
-;
+	directiveLocation |
+	directiveLocations '|' directiveLocation
+	;
 
 
 // Token
