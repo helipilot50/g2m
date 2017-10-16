@@ -17,6 +17,7 @@ import org.apache.commons.cli.PosixParser;
 import org.apache.log4j.Logger;
 
 
+@SuppressWarnings("deprecation")
 public class Export {
 	private static Logger log = Logger.getLogger(Export.class);
 	public static void main(String[] args) {

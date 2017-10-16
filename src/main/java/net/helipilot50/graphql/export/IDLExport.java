@@ -1,12 +1,9 @@
 package net.helipilot50.graphql.export;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -32,7 +29,6 @@ import net.helipilot50.graphql.export.grammar.GraphQLParser.EnumTypeDefinitionCo
 import net.helipilot50.graphql.export.grammar.GraphQLParser.EnumValueContext;
 import net.helipilot50.graphql.export.grammar.GraphQLParser.EnumValueDefinitionContext;
 import net.helipilot50.graphql.export.grammar.GraphQLParser.FieldDefinitionContext;
-import net.helipilot50.graphql.export.grammar.GraphQLParser.ImplementsInterfacesContext;
 import net.helipilot50.graphql.export.grammar.GraphQLParser.InputObjectTypeDefinitionContext;
 import net.helipilot50.graphql.export.grammar.GraphQLParser.InputValueDefinitionContext;
 import net.helipilot50.graphql.export.grammar.GraphQLParser.InterfaceTypeDefinitionContext;
@@ -47,9 +43,6 @@ import net.helipilot50.graphql.export.grammar.GraphQLParser.TypeNameContext;
 import net.helipilot50.graphql.export.grammar.GraphQLParser.TypeSystemDefinitionContext;
 import net.helipilot50.graphql.export.grammar.GraphQLParser.UnionMembersContext;
 import net.helipilot50.graphql.export.grammar.GraphQLParser.UnionTypeDefinitionContext;
-import net.sourceforge.plantuml.FileFormat;
-import net.sourceforge.plantuml.FileFormatOption;
-import net.sourceforge.plantuml.SourceStringReader;
 
 enum Language {
 	PLANTUML,
@@ -453,7 +446,7 @@ public class IDLExport extends GraphQLBaseListener{
 	public void exitName(NameContext ctx) {
 		String name = ctx.getText();
 		ST stx = templateForReservedWord(name);
-		String ststring = stx.render();
+		stx.render();
 		putCode(ctx, stx);
 	}
 
