@@ -87,10 +87,6 @@
 				<groupId>org.antlr</groupId>
 				<artifactId>antlr4-maven-plugin</artifactId>
 				<version>4.7</version>
-				<configuration>
-					<sourceDirectory>src/main/resources</sourceDirectory>
-					<outputDirectory>src/main/java/net/helipilot50/graphql/export/grammar</outputDirectory>
-				</configuration>
 				<executions>
 					<execution>
 						<goals>
