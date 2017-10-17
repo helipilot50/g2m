@@ -1,10 +1,5 @@
 grammar GraphQL;
 
-
-@header {
-    package net.helipilot50.graphql.export.grammar;
-}
-
 // Document 
 
 document : definition+;
