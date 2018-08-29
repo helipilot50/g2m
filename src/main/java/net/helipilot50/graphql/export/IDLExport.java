@@ -46,7 +46,9 @@ import net.helipilot50.graphql.export.grammar.GraphQLParser.UnionTypeDefinitionC
 
 enum Language {
 	PLANTUML,
-	TEXTUML
+	TEXTUML,
+	PROTO,
+	XMI
 }
 
 public class IDLExport extends GraphQLBaseListener{
@@ -71,6 +73,9 @@ public class IDLExport extends GraphQLBaseListener{
 		systemTypes.add("float");
 		systemTypes.add("string");
 		systemTypes.add("boolean");
+		// custom scalars
+		systemTypes.add("jsontype");
+		systemTypes.add("date");
 
 	}
 
@@ -89,15 +94,15 @@ public class IDLExport extends GraphQLBaseListener{
 		 */
 		case PLANTUML: {
 			// write as SVG
-//			SourceStringReader reader = new SourceStringReader(umlCode);
-//			ByteArrayOutputStream os = new ByteArrayOutputStream();
-//			String desc = reader.generateImage(os, new FileFormatOption(FileFormat.SVG));
-//			os.close();
-//			final String svg = new String(os.toByteArray(), Charset.forName("UTF-8"));
-//			File outputFile = new File(outputFilePrefix + ".svg");
-//			FileWriter fw = new FileWriter(outputFile);
-//			fw.write(svg);
-//			fw.close();
+			//			SourceStringReader reader = new SourceStringReader(umlCode);
+			//			ByteArrayOutputStream os = new ByteArrayOutputStream();
+			//			String desc = reader.generateImage(os, new FileFormatOption(FileFormat.SVG));
+			//			os.close();
+			//			final String svg = new String(os.toByteArray(), Charset.forName("UTF-8"));
+			//			File outputFile = new File(outputFilePrefix + ".svg");
+			//			FileWriter fw = new FileWriter(outputFile);
+			//			fw.write(svg);
+			//			fw.close();
 			// write as puml text
 			File outputFile = new File(outputFilePrefix + ".puml");
 			FileWriter fw = new FileWriter(outputFile);
@@ -110,6 +115,16 @@ public class IDLExport extends GraphQLBaseListener{
 		 */
 		case TEXTUML: {
 			File outputFile = new File(outputFilePrefix + ".tuml");
+			FileWriter fw = new FileWriter(outputFile);
+			fw.write(umlCode);
+			fw.close();
+			break;
+		}
+		/*
+		 * Proto Buf
+		 */
+		case PROTO: {
+			File outputFile = new File(outputFilePrefix + ".proto");
 			FileWriter fw = new FileWriter(outputFile);
 			fw.write(umlCode);
 			fw.close();
@@ -138,8 +153,12 @@ public class IDLExport extends GraphQLBaseListener{
 			templates = new STGroupFile(getClass().getResource("textuml.stg"), null, '$', '$');
 			break;
 		}
+		case PROTO: {
+			templates = new STGroupFile(getClass().getResource("protobuf.stg"), null, '$', '$');
+			break;
+		}
 		default:
-			templates = new STGroupFile(getClass().getResource("textuml.stg"), null, '$', '$');
+			templates = new STGroupFile(getClass().getResource("plantuml.stg"), null, '$', '$');
 			break;
 		}
 		loadReservedWords();
@@ -204,7 +223,7 @@ public class IDLExport extends GraphQLBaseListener{
 	private void traverseUnionMembers(ST unionST, UnionMembersContext ctx){
 		if (ctx.typeName()!=null)
 			unionST.add("members", code.get(ctx.typeName().name()));
-		
+
 		if (ctx.unionMembers()!= null)
 			traverseUnionMembers(unionST, ctx.unionMembers());
 	}
@@ -261,7 +280,7 @@ public class IDLExport extends GraphQLBaseListener{
 		associationST.add("typeA", typeName);
 		associationST.add("nameA", methodName);
 		associationST.add("cardA", sourceCard);
-		
+
 		String backwardName = typeName.render().toLowerCase();
 		associationST.add("nameB", templateForReservedWord(backwardName));
 		associationST.add("typeB", templateForReservedWord(methodType));
@@ -323,55 +342,60 @@ public class IDLExport extends GraphQLBaseListener{
 			methodST.add("type", methodType);
 			//String mt = methodType.render();
 			putCode(ctx, methodST);
+			
+			
 			// association
-			ST cardB = null;
-			String typeString = null;
-			if (typeCtx.listType()!=null){
-				cardB = getTemplateFor("zeroToMany");
-				typeString = typeCtx.listType().type().getText();
-			}else {
-				cardB = getTemplateFor("zeroOrOne");
-				typeString = typeCtx.getText();
-			}
-			ST linkST = linkFieldST(currentType, 
-					methodName, 
-					typeString, 
-					getTemplateFor("exactlyOne"),
-					cardB);
-			linkFields.add(linkST);
+			createAssociation(linkFields, methodName, typeCtx);
 		}
 	}
 
 	@Override
 	public void exitInputValueDefinition(InputValueDefinitionContext ctx) {
-		ST st = getTemplateFor("inputValueDefinition");
 		TypeContext typeCtx = ctx.type();
 		boolean systemType = false;
-		if (typeCtx.listType()!=null)
-			systemType = isSystemType(typeCtx.listType().type().typeName().getText());
-		else if (typeCtx.nonNullType()!=null)
-			systemType = isSystemType(typeCtx.nonNullType().typeName().getText());
-		else 
-			systemType = isSystemType(typeCtx.typeName().getText());
-
-		st.add("name", code.get(ctx.name()));
-		st.add("type", code.get(ctx.type()));
-		if (ctx.defaultValue()!=null){
-			st.add("defaultValue", ctx.defaultValue().value().getText());
-		}
+		String typeName = typeNameFromContext(typeCtx);
+		systemType = isSystemType(typeName);
+		ST nameST = code.get(ctx.name());
+		ST st = getTemplateFor("inputValueDefinition");
+		st.add("name", nameST);
+		if (systemType && (typeCtx.nonNullType()!=null) && (typeCtx.nonNullType().listType()!=null)) 
+			st.add("type", code.get(typeCtx.nonNullType().listType()));
+		else
+			st.add("type", code.get(typeCtx));
 		putCode(ctx, st);
-		if (!systemType)  {
 
-			ST methodName = code.get(ctx.name());
-			ST linkST = linkFieldST(currentType, 
-					methodName, 
-					ctx.type().getText(),
-					getTemplateFor("exactlyOne"),
-					getTemplateFor("exactlyOne"));
-			linkFields.add(linkST);
+		if (!systemType) {
+			// association
+			createAssociation(linkFields, nameST, typeCtx);
 		}
 	}
 
+	private void createAssociation(List<ST> linkFields, ST nameST, TypeContext typeCtx) {
+		// association
+		ST cardB = null;
+		String typeString = null;
+		if (typeCtx.nonNullType()!=null) {
+			if(typeCtx.nonNullType().listType()!=null)
+				cardB = getTemplateFor("oneToMany");
+			else
+				cardB = getTemplateFor("exactlyOne");
+			typeString = code.get(typeCtx).render();
+		} else if (typeCtx.listType()!=null){
+			cardB = getTemplateFor("zeroToMany");
+			typeString = typeCtx.listType().type().getText();
+		}else {
+			cardB = getTemplateFor("zeroOrOne");
+			typeString = typeCtx.getText();
+		}
+		ST linkST = linkFieldST(currentType, 
+				nameST, 
+				typeString, 
+				getTemplateFor("exactlyOne"),
+				cardB);
+		linkFields.add(linkST);
+		
+	}
+	
 	@Override
 	public void exitArgumentsDefinition(ArgumentsDefinitionContext ctx) {
 		ST st = getTemplateFor("argumentsDefinition");
@@ -384,13 +408,46 @@ public class IDLExport extends GraphQLBaseListener{
 	}
 
 
+	private String typeNameFromContext(TypeContext typeCtx) {
+		if (typeCtx.listType()!=null) 
+			return typeCtx.listType().type().typeName().getText();
+		else if (typeCtx.nonNullType()!=null)  {
+			if (typeCtx.nonNullType().listType()!=null) 
+				return typeCtx.nonNullType().listType().type().typeName().getText();
+			else
+				return typeCtx.nonNullType().typeName().getText();
+		}
+		else 
+			return typeCtx.typeName().getText();
+	}
+
+	private TypeContext typeFromContext(TypeContext typeCtx) {
+		if (typeCtx.listType()!=null) 
+			return typeCtx.listType().type();
+		else if (typeCtx.nonNullType()!=null)  {
+			if (typeCtx.nonNullType().listType()!=null) 
+				return typeCtx.nonNullType().listType().type();
+			else
+				return typeCtx;
+		}
+		else 
+			return typeCtx;
+	}
+
 	@Override
 	public void exitType(TypeContext ctx) {
+		//System.out.println(ctx.getText());
 		ST st = getTemplateFor("type");
 		if (ctx.listType()!=null)
 			st.add("type", code.get(ctx.listType()));
-		else if (ctx.nonNullType()!=null)
-			st.add("type", templateForSystemType(ctx.nonNullType().typeName().getText()));
+		else if (ctx.nonNullType()!=null) {
+			NonNullTypeContext nonNullCtx  = ctx.nonNullType();
+			if (nonNullCtx.listType()==null) {
+				TypeNameContext tnc = nonNullCtx.typeName();
+				String name = tnc.getText();
+				st.add("type", templateForSystemType(name));
+			}
+		}
 		else 
 			st.add("type", templateForSystemType(ctx.typeName().getText()));
 		putCode(ctx, st);
@@ -465,6 +522,12 @@ public class IDLExport extends GraphQLBaseListener{
 				break;
 			case "float":
 				st = getTemplateFor("float");
+				break;
+			case "jsontype":
+				st = getTemplateFor("jsontype");
+				break;
+			case "date":
+				st = getTemplateFor("date");
 				break;
 			}
 

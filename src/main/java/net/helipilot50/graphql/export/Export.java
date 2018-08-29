@@ -11,25 +11,24 @@ import java.net.URL;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
-import org.apache.commons.cli.PosixParser;
 import org.apache.log4j.Logger;
 
 
-@SuppressWarnings("deprecation")
 public class Export {
 	private static Logger log = Logger.getLogger(Export.class);
 	public static void main(String[] args) {
 		try {
 			Options options = new Options();
 			options.addOption("i", "input", true, "input file name ");
-			options.addOption("l", "language", true, "Target language, supported languages: PLANTUML, TEXTUML (future: XMI)");
+			options.addOption("l", "language", true, "Target language, supported languages: PLANTUML, TEXTUML, PROTO (future: XMI)");
 			options.addOption("p", "package", true, "UML package name");
 			options.addOption("o", "output", true, "Output directory name. ");
 			options.addOption("h", "help", false, "Print usage.");
 
-			CommandLineParser parser = new PosixParser();
+			CommandLineParser parser = new DefaultParser();
 			CommandLine cl = parser.parse(options, args, false);
 
 			if (cl.hasOption("h")) {

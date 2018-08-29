@@ -4,33 +4,25 @@ delimiters "$", "$"
 
 exitDocument(definitions, package) ::= <<
 
-@startuml
-Title Generated %date%
+syntax = "proto2";
 
-package $package$ {
+package $package$;
 
-	$definitions$
+$definitions$
 
-}
-
-hide Query
-hide Mutation
-
-@enduml
 
 >>
 
 inputObjectTypeDefinition(name, inputValues, linkFields) ::= <<
-class $name$ <<input\>>{
+message $name$ { // input type
 	$inputValues:{v |$v$
 	}$
 }
-$if(linkFields)$$linkFields$$endif$
 
 >>
 
 enumTypeDefinition(name, enumValues) ::= <<
-enum $name$ {
+message $name$ { // enum
 	$enumValues:{v |$v$
 	}$
 	
@@ -43,33 +35,29 @@ $value$
 >>
 
 scalarTypeDefinition(name) ::= <<
-class $name$ <<scalar\>>{
+message $name${ // scalar type
 }
 
 >>
 
 objectTypeDefinition(name, interfaces, fields, methods, linkFields) ::= <<
-class $name$ {
+message $name$ {
 	$fields$
 	$methods$
 }
-$if(linkFields)$$linkFields$$endif$
-$interfaces:{z|$z$ <|.. $name$ }$
 
 >>
 
 interfaceTypeDefinition(name, fields, methods, linkFields) ::= <<
-interface $name$ {
+message $name$ {
 	$fields$
 	$methods$
 }
 
-$if(linkFields)$$linkFields$$endif$
-
 >>
 
 unionTypeDefinition(name, members) ::= <<
-class $name$ <<union\>>{
+message $name$ <<union\>>{
 }
 
 $members:{z|$aggregation(name, z)$}$
