@@ -1,0 +1,43 @@
+@startuml
+title Mutation Operation - Audit
+autonumber
+
+actor "Middleware server" as Middleware #FFE6CC
+participant "Configuration\nRegistry" as registry #FFE6CC
+participant "PermissionDirective" as permissionD #FFE6CC
+participant "Data\nConnector" as dataCon  #FFE6CC
+participant "Audit\nConnector" as audCon  #FFE6CC
+database "Middlewre\nData\nStore" as store #DAE8FC
+participant "Permissions Service" as permissionS #E1D5E7
+participant "Audit Log\nService" as auditS #E1D5E7
+
+Middleware -> registry : GraphiQL mutation - store value
+activate registry
+registry -> permissionD : directive resolver
+activate permissionD
+permissionD -> permissionS: REST: /sts/connect/userinfo/permissions
+permissionD <-- permissionS: response 
+registry<-- permissionD : has permission
+deactivate permissionD
+registry -> dataCon : store the value
+activate dataCon
+dataCon -> store : update Folder
+dataCon <-- store : update OK
+dataCon -> store : store the Value
+dataCon <-- store : new stored value
+registry <-- dataCon : operation result - new stored value
+deactivate dataCon
+group Audit
+registry -\ audCon : REST: /v1/auditlog/changes
+activate audCon
+audCon -> auditS : REST: /v1/auditlog/changes
+audCon <-- auditS : response
+deactivate audCon
+end
+Middleware <-- registry : GraphiQL result - new registry value
+deactivate registry
+
+
+
+
+@enduml
